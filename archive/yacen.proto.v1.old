@@ -1,0 +1,114 @@
+syntax = "proto3";
+package yacen_api;
+
+service Yacen {
+  rpc Register(OwnershipProof) returns(Status);
+  rpc SendMessage(SendMessageRequest) returns(Status);
+  rpc GetMessages(OwnershipProof) returns(stream GetMessageResponse);
+  rpc CreateTicket() returns();
+  rpc UseTicket(UseTicketRequest) returns();
+}
+
+message Status {
+  enum StatusType {
+    FAILED = 0;
+    PENDING = 1;
+    SUCCESS = 2;
+  }
+
+  StatusType status = 1;
+
+  // Field for comment to status
+  string comment = 2;
+}
+
+message Message {
+  enum MessageType {
+    TEXT = 0;
+    FILE = 1;
+  }
+
+  // Message type from special enum
+  MessageType message_type = 1;
+
+  // Message encrypted data
+  bytes data = 2;
+
+  bytes sender = 3;
+  /** 
+   * Signature to get proof of authorship
+   * Format: signature(timestamp: bytes[8] + data: bytes): bytes[64]
+   *
+   * ! This signature need to be checked by server
+   */
+  bytes signature = 4;
+  int64 timestamp = 5;
+}
+
+message OwnershipProof {
+  // Ed25519 public key 
+  bytes public_key = 1;
+
+  /** 
+   * Signature to get proof of ownership of public key
+   * Format: signature(timestamp: bytes[8] + nonce: bytes[8]): bytes[64]
+   */
+  bytes signature = 2;
+}
+
+message SendMessageRequest {
+  // Receiver uid (8 bytes)
+  bytes receiver = 1;
+
+  // Message structure
+  Message message = 2;
+
+  // Sender public key 
+  bytes public_key = 3;
+
+  /** 
+   * Signature to get proof of authorship
+   * Format: signature(timestamp: bytes[8] + receiver: bytes[8] + message.data: bytes): bytes[64]
+   *
+   * ! This signature need to be checked by server
+   */
+  bytes signature = 4;
+}
+
+message GetMessagesResponse {
+  // Should be tested, but by default batch size equals 5
+  repeated Message messages = 1;
+}
+
+message CreateTicketRequest {
+  // Key must be encrypted by ECIES or other accepted assymetric encryption scheme
+  bytes key = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+message CreateTicketResponse {
+  bytes ticket_id = 1;
+}
+
+message UseTicketRequest {
+  bytes ticket_id = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+message UserInfo {
+  bytes user_id = 1;
+  bytes public_key = 2;
+  
+  // Key must be encrypted by ECIES or other accepted assymetric encryption scheme
+  bytes key = 3;
+}
+
+message CheckTicketRequest {
+  bytes ticket_id = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+message CheckTicketResponse {
+  Status status = 1;
+  UserInfo user_info = 2;
+}

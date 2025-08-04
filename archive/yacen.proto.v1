@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package yacen_api.v1;
+
+option java_package = "com.yacen.api.v1";
+option java_multiple_files = true;
+// option go_package = "github.com/notbalds/yacen-server/; yacen";  This should be set on server dev because of using golang
+
+import "google/protobuf/timestamp.proto";
+
+// Main gRPC service
+service Yacen {
+  // Register by proving ownership of a public key
+  rpc Register(OwnershipProof) returns (Status);
+
+  // Send an encrypted message to another user
+  rpc SendMessage(SendMessageRequest) returns (Status);
+
+  // Stream live incoming messages for the caller
+  rpc GetMessages(Empty) returns (stream ListMessagesResponse);
+
+  // Retrieve historical messages with pagination
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+
+  // Issue a one-time ticket for privileged operations
+  rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
+
+  // Redeem a previously issued ticket
+  rpc UseTicket(UseTicketRequest) returns (Status);
+
+  // Revoke an issued ticket explicitly
+  rpc RevokeTicket(RevokeTicketRequest) returns (Status);
+
+  // Verify a ticket and retrieve associated user info
+  rpc CheckTicket(CheckTicketRequest) returns (CheckTicketResponse);
+
+  // TODO rpc UploadFile(stream UploadFileRequest) returns 
+}
+
+// Empty placeholder for metadata-driven auth
+message Empty {}
+
+// Standard response wrapper (use gRPC status codes for transport-level errors)
+message Status {
+  enum StatusType {
+    FAILED = 0;
+    PENDING = 1;
+    SUCCESS = 2;
+  }
+  StatusType status = 1;
+  string comment = 2;
+}
+
+// Chat or file message with strong typing via oneof
+message Message {
+  oneof payload {
+    bytes text = 1;         // Encrypted text data
+    bytes file = 2;         // Encrypted file data
+  }
+  bytes sender = 3;         // Sender public key or UID
+  google.protobuf.Timestamp created_at = 4;
+  bytes signature = 5;      // Ed25519 signature over timestamp + payload
+}
+
+// Ownership proof for auth interceptor
+message OwnershipProof {
+  bytes public_key = 1;
+  bytes signature = 2;      // Signature over timestamp + nonce
+}
+
+// SendMessage RPC payload
+message SendMessageRequest {
+  bytes receiver = 1;       // Recipient UID
+  Message message = 2;
+}
+
+// ListMessages request for paging
+message ListMessagesRequest {
+  bytes cursor = 1;              // Pagination cursor
+  int32 page_size = 2;           // Max messages to return
+}
+
+// ListMessages response batch
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  bytes next_page_cursor = 2;
+}
+
+// Ticket issuance
+message CreateTicketRequest {
+  bytes key = 1;                // Encrypted symmetric key
+  OwnershipProof ownership_proof = 2;
+}
+
+message CreateTicketResponse {
+  bytes ticket_id = 1;
+  google.protobuf.Timestamp expires_at = 2; // Expiration time
+}
+
+// Redeem a ticket
+message UseTicketRequest {
+  bytes ticket_id = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+message UseTicketResponse {
+  Status staatus = 1;
+  UserInfo user_info = 2;
+}
+
+// Explicit ticket revocation
+message RevokeTicketRequest {
+  bytes ticket_id = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+// Check ticket validity
+message CheckTicketRequest {
+  bytes ticket_id = 1;
+  OwnershipProof ownership_proof = 2;
+}
+
+message CheckTicketResponse {
+  Status status = 1;
+  UserInfo user_info = 2;
+}
+
+// User identity for ticket validation
+message UserInfo {
+  string user_id = 1;          // UUID string
+  bytes public_key = 2;
+  bytes key = 3;               // Encrypted symmetric key
+}
