@@ -23,7 +23,7 @@ import "google/protobuf/timestamp.proto";
 // - Verify that the signature matches the serialized protobuf request body.
 //
 // Response behavior:
-// - Server may also include its own signature and public key
+// - Server must also include its own signature and public key
 //   in the response metadata using the same "signature" and "pubkey" headers.
 //
 // This mechanism ensures message integrity, authenticity, and
