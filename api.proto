@@ -61,10 +61,8 @@ service Yacen {
   rpc UploadFile (stream UploadFileReq) returns (UploadFileRes);
   rpc DownloadFile (DownloadFileReq) returns (stream DownloadFileRes);
   
-  // Extended Rights and upper
+  // Extended Rights
   rpc ApproveJoinRequest (ApproveJoinRequestReq) returns (ApproveJoinRequestRes);
-
-  // Admin & Owner
   rpc GiveExtendedRights (GiveExtendedRightsReq) returns (GiveExtendedRightsRes);
   rpc RemoveExtendedRights (RemoveExtendedRightsReq) returns (RemoveExtendedRightsRes);
 }
@@ -174,7 +172,7 @@ message GetRoomInfoReq {
 
 message GetRoomInfoRes {
   RoomInfoPublic public_info = 1;
-  optional RoomInfoPrivate private_info = 2; // only if sender is owner
+  optional RoomInfoPrivate private_info = 2; // only if sender has extended rights
   MessageUniqueID muid = 5;
 }
 
@@ -206,7 +204,7 @@ message DeleteRoomRes {
 // --------------------------------------------------------- //
 // region GiveExtendedRights
 
-message GiveExtendedRightsReq { // only owner could do it
+message GiveExtendedRightsReq { // only user with extended rights could do it
   repeated string target_pubkeys = 1;
   MessageUniqueID muid = 5;
 }
@@ -218,7 +216,7 @@ message GiveExtendedRightsRes {
 // --------------------------------------------------------- //
 // region RemoveExtendedRights
 
-message RemoveExtendedRightsReq { // only owner could do it
+message RemoveExtendedRightsReq { // only user with extended rights could do it
   repeated string target_pubkeys = 1;
   MessageUniqueID muid = 5;
 }
